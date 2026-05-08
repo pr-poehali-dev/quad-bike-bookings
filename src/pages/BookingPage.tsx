@@ -422,9 +422,11 @@ export default function BookingPage({ onAdminClick }: { onAdminClick: () => void
       <header className="sticky top-0 z-40 border-b border-border/50 backdrop-blur-xl bg-background/85">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-fire rounded-sm flex items-center justify-center animate-pulse-fire">
-              <span className="text-white font-display font-bold text-xs">Q</span>
-            </div>
+            <img
+              src="https://cdn.poehali.dev/projects/ff99e67c-206b-434b-a8cd-0f0f14c676c8/bucket/b2241d70-0bb1-489f-969c-387d997f395f.jpg"
+              alt="Квадролидер Анапа"
+              className="w-9 h-9 rounded-full object-cover opacity-90"
+            />
             <span className="font-display text-lg tracking-widest font-bold">КВАДРО<span className="text-fire">ЛИДЕР</span></span>
           </div>
           <button
