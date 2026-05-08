@@ -4,6 +4,7 @@ import { Booking } from "@/types/booking";
 import { getBookings, updateBooking, getAdminPassword, getTimeSlots, getSlotsWithAvailability, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import QuickBooking from "@/components/admin/QuickBooking";
+import AgentReport from "@/components/admin/AgentReport";
 
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const DAYS_OF_WEEK = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
@@ -440,12 +441,13 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
   );
 }
 
-type AdminView = "bookings" | "calendar" | "quick" | "settings";
+type AdminView = "bookings" | "calendar" | "quick" | "report" | "settings";
 
 const NAV_TABS: { id: AdminView; label: string; icon: string }[] = [
   { id: "bookings", label: "ЗАПИСИ", icon: "List" },
   { id: "calendar", label: "КАЛЕНДАРЬ", icon: "Calendar" },
   { id: "quick", label: "ЗАПИСАТЬ", icon: "PlusCircle" },
+  { id: "report", label: "СВЕРКА", icon: "BarChart2" },
   { id: "settings", label: "НАСТРОЙКИ", icon: "Settings" },
 ];
 
@@ -560,6 +562,20 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
               <p className="text-sm text-muted-foreground mt-1">Запишите клиента прямо сейчас</p>
             </div>
             <QuickBooking onDone={() => { setView("bookings"); reload(); }} />
+          </div>
+        )}
+
+        {/* Agent Report */}
+        {view === "report" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="font-display text-2xl font-bold tracking-wider flex items-center gap-2">
+                <Icon name="BarChart2" size={20} className="text-fire" />
+                СВЕРКА ПО АГЕНТАМ
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Продажи каждого агента, экспорт и печать</p>
+            </div>
+            <AgentReport bookings={bookings} />
           </div>
         )}
 
