@@ -498,11 +498,9 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
               <Icon name="ArrowLeft" size={14} />
             </button>
             <div className="flex items-center gap-2">
-              <img
-                src="https://cdn.poehali.dev/projects/ff99e67c-206b-434b-a8cd-0f0f14c676c8/bucket/b2241d70-0bb1-489f-969c-387d997f395f.jpg"
-                alt="Квадролидер Анапа"
-                className="w-9 h-9 rounded-full object-cover opacity-90"
-              />
+              <div className="w-7 h-7 bg-fire rounded-sm flex items-center justify-center">
+                <Icon name="Shield" size={14} className="text-white" />
+              </div>
               <span className="font-display text-lg tracking-widest font-bold">КВАДРО<span className="text-fire">ЛИДЕР</span></span>
             </div>
           </div>
