@@ -195,7 +195,7 @@ export default function AgentReport({ bookings }: Props) {
             <div>
               <h3 className="font-display text-xl font-bold mb-1">{selectedAgent.agentName}</h3>
               <div className="flex items-center gap-4 text-sm flex-wrap">
-                <a href={`tel:${selectedAgent.agentPhone}`} className="flex items-center gap-1.5 text-fire hover:text-fire/75">
+                <a href={`tel:${selectedAgent.agentPhone}`} className="flex items-center gap-1.5 text-green-400 hover:text-green-300">
                   <Icon name="Phone" size={13} />{selectedAgent.agentPhone}
                 </a>
                 <span className="flex items-center gap-1.5 text-muted-foreground">
@@ -244,7 +244,7 @@ export default function AgentReport({ bookings }: Props) {
             { label: "Броней", value: agentStats.count, color: "text-fire" },
             { label: "Квадроциклов", value: agentStats.quads, color: "text-foreground" },
             { label: "Гостей (макс.)", value: agentStats.guests, color: "text-foreground" },
-            { label: "Предоплата", value: `${agentStats.prepayment.toLocaleString()} ₽`, color: "text-fire" },
+            { label: "Предоплата", value: `${agentStats.prepayment.toLocaleString()} ₽`, color: "text-green-400" },
           ].map(s => (
             <div key={s.label} className={statCls}>
               <div className={`font-display text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -282,21 +282,21 @@ export default function AgentReport({ bookings }: Props) {
                     </td>
                     <td className="px-4 py-3 font-medium whitespace-nowrap">{b.guestName}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <a href={`tel:${b.guestPhone}`} className="text-fire hover:text-fire/75 text-xs">{b.guestPhone}</a>
+                      <a href={`tel:${b.guestPhone}`} className="text-green-400 hover:text-green-300 text-xs">{b.guestPhone}</a>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground max-w-48 truncate" title={b.guestAddress}>{b.guestAddress}</td>
                     <td className="px-4 py-3 text-center font-bold text-fire">{b.quadsCount}</td>
                     <td className="px-4 py-3 text-center text-muted-foreground">{b.quadsCount * 2}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {b.prepayment
-                        ? <span className="text-fire font-semibold">{b.prepayment.toLocaleString()} ₽</span>
+                        ? <span className="text-green-400 font-semibold">{b.prepayment.toLocaleString()} ₽</span>
                         : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`text-xs font-display px-2 py-0.5 rounded-sm border ${
-                        b.status === "active" ? "text-fire bg-fire/10 border-fire/30"
+                        b.status === "active" ? "text-green-400 bg-green-900/20 border-green-700/30"
                         : b.status === "transferred" ? "text-gold bg-gold/10 border-gold/30"
-                        : "text-red-500 bg-red-50 border-red-200"
+                        : "text-red-400 bg-red-900/20 border-red-700/30"
                       }`}>
                         {b.status === "active" ? "АКТИВНА" : b.status === "transferred" ? "ПЕРЕНЕСЕНА" : "ОТМЕНЕНА"}
                       </span>
@@ -309,7 +309,7 @@ export default function AgentReport({ bookings }: Props) {
                   <td colSpan={5} className="px-4 py-3 font-display text-xs tracking-wider text-muted-foreground">ИТОГО</td>
                   <td className="px-4 py-3 text-center text-fire">{agentStats.quads}</td>
                   <td className="px-4 py-3 text-center text-muted-foreground">{agentStats.guests}</td>
-                  <td className="px-4 py-3 text-fire">{agentStats.prepayment.toLocaleString()} ₽</td>
+                  <td className="px-4 py-3 text-green-400">{agentStats.prepayment.toLocaleString()} ₽</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{agentStats.count} броней</td>
                 </tr>
               </tfoot>
@@ -329,7 +329,7 @@ export default function AgentReport({ bookings }: Props) {
           { label: "Агентов", value: globalStats.agents, icon: "Users", color: "text-fire" },
           { label: "Броней всего", value: globalStats.bookings, icon: "BookCheck", color: "text-foreground" },
           { label: "Квадроциклов", value: globalStats.quads, icon: "Bike", color: "text-foreground" },
-          { label: "Сумма предоплат", value: `${globalStats.prepayment.toLocaleString()} ₽`, icon: "Banknote", color: "text-fire" },
+          { label: "Сумма предоплат", value: `${globalStats.prepayment.toLocaleString()} ₽`, icon: "Banknote", color: "text-green-400" },
         ].map(s => (
           <div key={s.label} className={statCls}>
             <Icon name={s.icon} size={16} className={`${s.color} mx-auto mb-1.5`} />
@@ -383,7 +383,7 @@ export default function AgentReport({ bookings }: Props) {
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{s.agentCompany || "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <a href={`tel:${s.agentPhone}`} onClick={e => e.stopPropagation()}
-                      className="text-fire hover:text-fire/75 text-xs">{s.agentPhone || "—"}</a>
+                      className="text-green-400 hover:text-green-300 text-xs">{s.agentPhone || "—"}</a>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-display font-bold text-fire">{s.bookingsCount}</span>
@@ -392,7 +392,7 @@ export default function AgentReport({ bookings }: Props) {
                   <td className="px-4 py-3 text-muted-foreground">{s.totalGuests}</td>
                   <td className="px-4 py-3">
                     {s.totalPrepayment > 0
-                      ? <span className="text-fire font-semibold">{s.totalPrepayment.toLocaleString()} ₽</span>
+                      ? <span className="text-green-400 font-semibold">{s.totalPrepayment.toLocaleString()} ₽</span>
                       : <span className="text-muted-foreground/40">—</span>}
                   </td>
                   <td className="px-4 py-3">

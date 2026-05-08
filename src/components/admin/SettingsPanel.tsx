@@ -157,7 +157,7 @@ export default function SettingsPanel() {
                 </div>
                 <button
                   onClick={() => removeSlot(idx)}
-                  className="w-8 h-8 flex items-center justify-center text-muted-foreground/40 hover:text-red-500 transition-colors rounded-sm hover:bg-red-50"
+                  className="w-8 h-8 flex items-center justify-center text-muted-foreground/40 hover:text-red-400 transition-colors rounded-sm hover:bg-red-900/20"
                 >
                   <Icon name="Trash2" size={14} />
                 </button>
@@ -178,7 +178,7 @@ export default function SettingsPanel() {
             onClick={saveSlots}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-display tracking-wider rounded-sm transition-all ${
               slotsSaved
-                ? "bg-fire border border-fire text-white"
+                ? "bg-green-700 border border-green-600 text-white"
                 : "bg-fire hover:bg-fire/85 text-white"
             }`}
           >
@@ -208,7 +208,7 @@ export default function SettingsPanel() {
               </div>
               <button
                 onClick={() => removeCompany(idx)}
-                className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 hover:text-red-500 transition-colors"
+                className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 hover:text-red-400 transition-colors"
               >
                 <Icon name="X" size={12} />
               </button>
@@ -238,7 +238,7 @@ export default function SettingsPanel() {
           onClick={handleSaveCompanies}
           className={`flex items-center gap-1.5 px-4 py-2 text-xs font-display tracking-wider rounded-sm transition-all ${
             companiesSaved
-              ? "bg-fire border border-fire text-white"
+              ? "bg-green-700 border border-green-600 text-white"
               : "bg-fire hover:bg-fire/85 text-white"
           }`}
         >
@@ -270,7 +270,7 @@ export default function SettingsPanel() {
           </div>
 
           {pwMsg && (
-            <p className={`text-xs font-display tracking-wider ${pwMsg.ok ? "text-fire" : "text-red-500"}`}>
+            <p className={`text-xs font-display tracking-wider ${pwMsg.ok ? "text-green-400" : "text-red-400"}`}>
               {pwMsg.ok ? "✓ " : "✗ "}{pwMsg.text}
             </p>
           )}

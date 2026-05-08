@@ -160,7 +160,7 @@ export default function QuickBooking({ onDone }: QuickBookingProps) {
 
         {/* Количество квадров */}
         <div>
-          <label className={labelCls}>КОЛИЧЕСТВО КВАДРОЦИКЛОВ {isFull && <span className="text-red-500">— СЛОТ ЗАНЯТ</span>}</label>
+          <label className={labelCls}>КОЛИЧЕСТВО КВАДРОЦИКЛОВ {isFull && <span className="text-red-400">— СЛОТ ЗАНЯТ</span>}</label>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setQuadsCount(c => Math.max(1, c - 1))}
               className="w-10 h-10 border border-border rounded-sm hover:border-fire/50 hover:bg-fire/10 flex items-center justify-center font-bold text-lg transition-all">−</button>

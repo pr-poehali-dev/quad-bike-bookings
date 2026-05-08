@@ -104,25 +104,25 @@
 
   .glow-fire {
     box-shadow:
-      0 0 30px rgba(45, 168, 104, 0.3),
-      0 0 60px rgba(45, 168, 104, 0.12);
+      0 0 30px rgba(255, 85, 0, 0.4),
+      0 0 60px rgba(255, 85, 0, 0.15);
   }
 
   .glow-fire-text {
-    text-shadow: 0 0 30px rgba(45, 168, 104, 0.5);
+    text-shadow: 0 0 30px rgba(255, 85, 0, 0.6);
   }
 
   .noise-bg {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   }
 
   .diagonal-lines {
     background-image: repeating-linear-gradient(
       -45deg,
       transparent,
-      transparent 18px,
-      rgba(45, 168, 104, 0.04) 18px,
-      rgba(45, 168, 104, 0.04) 19px
+      transparent 10px,
+      rgba(255, 85, 0, 0.03) 10px,
+      rgba(255, 85, 0, 0.03) 11px
     );
   }
 
@@ -162,12 +162,12 @@
 @keyframes pulse-fire {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(45, 168, 104, 0.35);
+    box-shadow: 0 0 20px rgba(255, 85, 0, 0.4);
   }
   50% {
     box-shadow:
-      0 0 40px rgba(45, 168, 104, 0.6),
-      0 0 80px rgba(45, 168, 104, 0.2);
+      0 0 40px rgba(255, 85, 0, 0.7),
+      0 0 80px rgba(255, 85, 0, 0.3);
   }
 }
 
