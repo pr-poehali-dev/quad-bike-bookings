@@ -425,7 +425,7 @@ export default function BookingPage({ onAdminClick }: { onAdminClick: () => void
             <div className="w-7 h-7 bg-fire rounded-sm flex items-center justify-center animate-pulse-fire">
               <span className="text-white font-display font-bold text-xs">Q</span>
             </div>
-            <span className="font-display text-lg tracking-widest font-bold">КВАДРО<span className="text-fire">ЛИДЕР</span></span>
+            <span className="font-display text-lg tracking-widest font-bold">QUAD<span className="text-fire">BOOK</span></span>
           </div>
           <button
             onClick={onAdminClick}

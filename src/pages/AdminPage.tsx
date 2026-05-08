@@ -501,7 +501,7 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
               <div className="w-7 h-7 bg-fire rounded-sm flex items-center justify-center">
                 <Icon name="Shield" size={14} className="text-white" />
               </div>
-              <span className="font-display text-lg tracking-widest font-bold">КВАДРО<span className="text-fire">ЛИДЕР</span></span>
+              <span className="font-display text-lg tracking-widest font-bold">QUAD<span className="text-fire">ADMIN</span></span>
             </div>
           </div>
           {/* Desktop nav */}
