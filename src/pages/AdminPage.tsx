@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { Booking } from "@/types/booking";
-import { getBookings, updateBooking, ADMIN_PASSWORD, TIME_SLOTS, getSlotsWithAvailability, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
+import { getBookings, updateBooking, getAdminPassword, getTimeSlots, getSlotsWithAvailability, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
+import SettingsPanel from "@/components/admin/SettingsPanel";
+import QuickBooking from "@/components/admin/QuickBooking";
 
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const DAYS_OF_WEEK = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
@@ -28,7 +30,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw === ADMIN_PASSWORD) { onLogin(); }
+    if (pw === getAdminPassword()) { onLogin(); }
     else { setError(true); setPw(""); setTimeout(() => setError(false), 2000); }
   };
 
@@ -70,7 +72,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 // Transfer list modal
 function TransferList({ date, bookings, onClose }: { date: string; bookings: Booking[]; onClose: () => void }) {
   const active = bookings.filter(b => b.date === date && b.status === "active");
-  const bySlot = TIME_SLOTS.map(slot => ({
+  const bySlot = getTimeSlots().map(slot => ({
     slot,
     bookings: active.filter(b => b.slotId === slot.id),
   })).filter(g => g.bookings.length > 0);
@@ -438,7 +440,14 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
   );
 }
 
-type AdminView = "bookings" | "calendar";
+type AdminView = "bookings" | "calendar" | "quick" | "settings";
+
+const NAV_TABS: { id: AdminView; label: string; icon: string }[] = [
+  { id: "bookings", label: "ЗАПИСИ", icon: "List" },
+  { id: "calendar", label: "КАЛЕНДАРЬ", icon: "Calendar" },
+  { id: "quick", label: "ЗАПИСАТЬ", icon: "PlusCircle" },
+  { id: "settings", label: "НАСТРОЙКИ", icon: "Settings" },
+];
 
 export default function AdminPage({ onBack }: { onBack: () => void }) {
   const [authed, setAuthed] = useState(false);
@@ -493,42 +502,82 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
               <span className="font-display text-lg tracking-widest font-bold">QUAD<span className="text-fire">ADMIN</span></span>
             </div>
           </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setView("bookings")}
-              className={`px-3 py-1.5 text-xs font-display tracking-wider rounded-sm transition-all ${view === "bookings" ? "bg-fire text-white" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              ЗАПИСИ
-            </button>
-            <button
-              onClick={() => setView("calendar")}
-              className={`px-3 py-1.5 text-xs font-display tracking-wider rounded-sm transition-all ${view === "calendar" ? "bg-fire text-white" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              КАЛЕНДАРЬ
-            </button>
+          {/* Desktop nav */}
+          <div className="hidden sm:flex gap-1">
+            {NAV_TABS.map(tab => (
+              <button key={tab.id} onClick={() => setView(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-display tracking-wider rounded-sm transition-all ${
+                  view === tab.id ? "bg-fire text-white" : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <Icon name={tab.icon} size={11} />
+                {tab.label}
+              </button>
+            ))}
           </div>
+        </div>
+        {/* Mobile nav */}
+        <div className="sm:hidden flex border-t border-border/40">
+          {NAV_TABS.map(tab => (
+            <button key={tab.id} onClick={() => setView(tab.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-display tracking-wider transition-all ${
+                view === tab.id ? "text-fire border-t-2 border-fire -mt-px" : "text-muted-foreground/60"
+              }`}>
+              <Icon name={tab.icon} size={14} />
+              <span className="text-[10px]">{tab.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "Всего активных", value: activeCount, icon: "CheckCircle", color: "text-green-400" },
-            { label: "Сегодня", value: todayCount, icon: "Calendar", color: "text-fire" },
-            { label: "Всего записей", value: bookings.length, icon: "List", color: "text-muted-foreground" },
-          ].map(stat => (
-            <div key={stat.label} className="bg-surface border border-border rounded-sm p-4 flex items-center gap-3">
-              <Icon name={stat.icon} size={20} className={stat.color} />
-              <div>
-                <div className={`font-display text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
+        {/* Stats — only on main views */}
+        {(view === "bookings" || view === "calendar") && (
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {[
+              { label: "Всего активных", value: activeCount, icon: "CheckCircle", color: "text-green-400" },
+              { label: "Сегодня", value: todayCount, icon: "Calendar", color: "text-fire" },
+              { label: "Всего записей", value: bookings.length, icon: "List", color: "text-muted-foreground" },
+            ].map(stat => (
+              <div key={stat.label} className="bg-surface border border-border rounded-sm p-4 flex items-center gap-3">
+                <Icon name={stat.icon} size={20} className={stat.color} />
+                <div>
+                  <div className={`font-display text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-muted-foreground">{stat.label}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {view === "calendar" ? (
+        {/* Quick booking */}
+        {view === "quick" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="font-display text-2xl font-bold tracking-wider flex items-center gap-2">
+                <Icon name="PlusCircle" size={20} className="text-fire" />
+                БЫСТРАЯ ЗАПИСЬ
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Запишите клиента прямо сейчас</p>
+            </div>
+            <QuickBooking onDone={() => { setView("bookings"); reload(); }} />
+          </div>
+        )}
+
+        {/* Settings */}
+        {view === "settings" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="font-display text-2xl font-bold tracking-wider flex items-center gap-2">
+                <Icon name="Settings" size={20} className="text-fire" />
+                НАСТРОЙКИ
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Управление слотами, компаниями и паролем</p>
+            </div>
+            <SettingsPanel />
+          </div>
+        )}
+
+        {view === "calendar" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-display text-sm tracking-widest text-muted-foreground mb-3">ВЫБЕРИТЕ ДАТУ</h3>
@@ -537,7 +586,7 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
             <div>
               <h3 className="font-display text-sm tracking-widest text-muted-foreground mb-3">ЗАГРУЗКА ПО СЛОТАМ</h3>
               <div className="space-y-2">
-                {filterDate ? TIME_SLOTS.map(slot => {
+                {filterDate ? getTimeSlots().map(slot => {
                   const cnt = bookings.filter(b => b.date === filterDate && b.slotId === slot.id && b.status === "active")
                     .reduce((s, b) => s + b.quadsCount, 0);
                   const pct = Math.round((cnt / slot.quadsTotal) * 100);
@@ -560,7 +609,9 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {view === "bookings" && (
           <>
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-5">

@@ -1,8 +1,7 @@
 import { Booking, TimeSlot } from "@/types/booking";
 
-export const ADMIN_PASSWORD = "admin2024";
-
-export const TIME_SLOTS: TimeSlot[] = [
+// --- Defaults ---
+const DEFAULT_SLOTS: TimeSlot[] = [
   { id: "s1", time: "08:00", label: "Утренний рейд", quadsTotal: 7, quadsBooked: 0 },
   { id: "s2", time: "10:00", label: "Дневной старт", quadsTotal: 7, quadsBooked: 0 },
   { id: "s3", time: "12:00", label: "Полуденный тур", quadsTotal: 7, quadsBooked: 0 },
@@ -11,19 +10,72 @@ export const TIME_SLOTS: TimeSlot[] = [
   { id: "s6", time: "18:00", label: "Вечерний заезд", quadsTotal: 7, quadsBooked: 0 },
 ];
 
-const STORAGE_KEY = "quad_bookings";
+const DEFAULT_PASSWORD = "admin2024";
+const DEFAULT_COMPANIES: string[] = [];
 
+// --- Storage keys ---
+const STORAGE_BOOKINGS = "quad_bookings";
+const STORAGE_SLOTS    = "quad_slots";
+const STORAGE_PASSWORD = "quad_password";
+const STORAGE_COMPANIES = "quad_companies";
+
+// --- Slots ---
+export function getTimeSlots(): TimeSlot[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_SLOTS);
+    return raw ? JSON.parse(raw) : DEFAULT_SLOTS;
+  } catch {
+    return DEFAULT_SLOTS;
+  }
+}
+
+export function saveTimeSlots(slots: TimeSlot[]): void {
+  localStorage.setItem(STORAGE_SLOTS, JSON.stringify(slots));
+}
+
+// For backward compat — use dynamic getter everywhere
+export const TIME_SLOTS = DEFAULT_SLOTS;
+
+// --- Password ---
+export function getAdminPassword(): string {
+  return localStorage.getItem(STORAGE_PASSWORD) || DEFAULT_PASSWORD;
+}
+
+export function saveAdminPassword(pw: string): void {
+  localStorage.setItem(STORAGE_PASSWORD, pw);
+}
+
+export const ADMIN_PASSWORD = DEFAULT_PASSWORD;
+
+// --- Companies ---
+export function getCompanies(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_COMPANIES);
+    return raw ? JSON.parse(raw) : DEFAULT_COMPANIES;
+  } catch {
+    return DEFAULT_COMPANIES;
+  }
+}
+
+export function saveCompanies(companies: string[]): void {
+  localStorage.setItem(STORAGE_COMPANIES, JSON.stringify(companies));
+}
+
+// --- Bookings ---
 export function getBookings(): Booking[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : getSampleBookings();
+    const raw = localStorage.getItem(STORAGE_BOOKINGS);
+    if (raw) return JSON.parse(raw);
+    const sample = getSampleBookings();
+    saveBookings(sample);
+    return sample;
   } catch {
     return getSampleBookings();
   }
 }
 
 export function saveBookings(bookings: Booking[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+  localStorage.setItem(STORAGE_BOOKINGS, JSON.stringify(bookings));
 }
 
 export function addBooking(booking: Booking): void {
@@ -48,22 +100,23 @@ export function getSlotBookedCount(date: string, slotId: string): number {
 }
 
 export function getSlotFreeCount(date: string, slotId: string): number {
-  const slot = TIME_SLOTS.find(s => s.id === slotId);
+  const slots = getTimeSlots();
+  const slot = slots.find(s => s.id === slotId);
   if (!slot) return 0;
   return slot.quadsTotal - getSlotBookedCount(date, slotId);
 }
 
 export function isDayFull(date: string): boolean {
-  return TIME_SLOTS.every(slot => getSlotFreeCount(date, slot.id) === 0);
+  return getTimeSlots().every(slot => getSlotFreeCount(date, slot.id) === 0);
 }
 
 export function getDayFreeTotal(date: string): number {
-  return TIME_SLOTS.reduce((sum, slot) => sum + getSlotFreeCount(date, slot.id), 0);
+  return getTimeSlots().reduce((sum, slot) => sum + getSlotFreeCount(date, slot.id), 0);
 }
 
 export function getSlotsWithAvailability(date: string, excludeBookingId?: string) {
   const bookings = getBookings();
-  return TIME_SLOTS.map(slot => {
+  return getTimeSlots().map(slot => {
     const booked = bookings
       .filter(b =>
         b.date === date &&

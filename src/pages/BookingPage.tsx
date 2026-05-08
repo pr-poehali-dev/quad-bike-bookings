@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { TIME_SLOTS, getSlotBookedCount, addBooking, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
-import { BookingFormData } from "@/types/booking";
+import { getTimeSlots, getSlotBookedCount, addBooking, isDayFull, getDayFreeTotal, getCompanies } from "@/lib/bookingStore";
+import { BookingFormData, TimeSlot } from "@/types/booking";
 
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const DAYS_OF_WEEK = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
@@ -116,10 +116,12 @@ function StepCalendar({ onSelect }: { onSelect: (date: string) => void }) {
 // STEP 2: Slot selection
 function StepSlot({ date, onSelect }: { date: string; onSelect: (slotId: string, slotTime: string) => void }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  useEffect(() => { setSlots(getTimeSlots()); }, []);
 
   return (
     <div className="space-y-3">
-      {TIME_SLOTS.map(slot => {
+      {slots.map(slot => {
         const booked = getSlotBookedCount(date, slot.id);
         const free = slot.quadsTotal - booked;
         const isFull = free === 0;
@@ -167,12 +169,15 @@ function StepSlot({ date, onSelect }: { date: string; onSelect: (slotId: string,
 // STEP 3: Quads count
 function StepQuads({ slotId, date, onSelect }: { slotId: string; date: string; onSelect: (count: number) => void }) {
   const [count, setCount] = useState(1);
+  const slots = getTimeSlots();
+  const slot = slots.find(s => s.id === slotId);
+  const total = slot?.quadsTotal ?? 7;
   const booked = getSlotBookedCount(date, slotId);
-  const free = 7 - booked;
+  const free = total - booked;
 
   return (
     <div className="max-w-sm mx-auto text-center">
-      <p className="text-muted-foreground mb-2 text-sm">Доступно: <span className="text-green-400 font-semibold">{free}</span> из 7 квадроциклов</p>
+      <p className="text-muted-foreground mb-2 text-sm">Доступно: <span className="text-green-400 font-semibold">{free}</span> из {total} квадроциклов</p>
       <p className="text-xs text-muted-foreground mb-8">Каждый квадроцикл двухместный</p>
 
       <div className="flex items-center justify-center gap-6 mb-10">
@@ -192,7 +197,7 @@ function StepQuads({ slotId, date, onSelect }: { slotId: string; date: string; o
       </div>
 
       <div className="flex gap-2 justify-center mb-8">
-        {Array.from({ length: 7 }, (_, i) => (
+        {Array.from({ length: total }, (_, i) => (
           <div
             key={i}
             className={`flex flex-col items-center gap-1 cursor-pointer transition-all`}
@@ -228,6 +233,14 @@ function StepForm({
     agentName: "", agentPhone: "", agentCompany: "",
     prepayment: "none", customPrepayment: "",
   });
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [companyMode, setCompanyMode] = useState<"list" | "manual">("list");
+
+  useEffect(() => {
+    const c = getCompanies();
+    setCompanies(c);
+    if (c.length === 0) setCompanyMode("manual");
+  }, []);
 
   const set = (k: keyof BookingFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -280,8 +293,24 @@ function StepForm({
             <input type="tel" required placeholder="+7 (999) 000-00-00" value={form.agentPhone} onChange={set("agentPhone")} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>КОМПАНИЯ *</label>
-            <input type="text" required placeholder="Название турагентства" value={form.agentCompany} onChange={set("agentCompany")} className={inputCls} />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={`${labelCls} mb-0`}>КОМПАНИЯ *</label>
+              {companies.length > 0 && (
+                <button type="button"
+                  onClick={() => { setCompanyMode(m => m === "list" ? "manual" : "list"); setForm(f => ({ ...f, agentCompany: "" })); }}
+                  className="text-xs text-muted-foreground hover:text-fire transition-colors font-display tracking-wider">
+                  {companyMode === "list" ? "ВВЕСТИ ВРУЧНУЮ" : "ВЫБРАТЬ ИЗ СПИСКА"}
+                </button>
+              )}
+            </div>
+            {companyMode === "list" && companies.length > 0 ? (
+              <select required value={form.agentCompany} onChange={set("agentCompany")} className={inputCls}>
+                <option value="">— Выберите компанию —</option>
+                {companies.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            ) : (
+              <input type="text" required placeholder="Название турагентства" value={form.agentCompany} onChange={set("agentCompany")} className={inputCls} />
+            )}
           </div>
         </div>
       </div>
