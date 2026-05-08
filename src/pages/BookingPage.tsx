@@ -143,9 +143,9 @@ function StepSlot({ date, onSelect }: { date: string; onSelect: (slotId: string,
         const isFull = free === 0;
         const isSel = selected === slot.id;
 
-        let statusColor = "text-fire";
-        let statusBg = "bg-fire/10 border-fire/30";
-        let dotColor = "bg-fire";
+        let statusColor = "text-green-600";
+        let statusBg = "bg-green-50 border-green-300";
+        let dotColor = "bg-green-500";
         if (free <= 2 && free > 0) { statusColor = "text-gold"; statusBg = "bg-gold/15 border-gold/40"; dotColor = "bg-gold"; }
         if (isFull) { statusColor = "text-red-500"; statusBg = "bg-red-50 border-red-200"; dotColor = "bg-red-400"; }
 
