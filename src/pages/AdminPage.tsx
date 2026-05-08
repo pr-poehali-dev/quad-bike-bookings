@@ -59,7 +59,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 error ? "border-red-500 animate-pulse" : "border-border focus:border-fire/60"
               }`}
             />
-            {error && <p className="text-red-400 text-xs mt-1.5 font-display tracking-wider">НЕВЕРНЫЙ ПАРОЛЬ</p>}
+            {error && <p className="text-red-500 text-xs mt-1.5 font-display tracking-wider">НЕВЕРНЫЙ ПАРОЛЬ</p>}
           </div>
           <button type="submit" className="w-full bg-fire hover:bg-fire/85 text-white font-display tracking-widest py-3.5 text-sm transition-all">
             ВОЙТИ →
@@ -81,7 +81,7 @@ function TransferList({ date, bookings, onClose }: { date: string; bookings: Boo
   const handlePrint = () => window.print();
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-foreground/30 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-2xl bg-background border border-border rounded-sm my-8">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
@@ -122,7 +122,7 @@ function TransferList({ date, bookings, onClose }: { date: string; bookings: Boo
                           <Icon name="MapPin" size={12} />
                           <span>{b.guestAddress}</span>
                         </div>
-                        <a href={`tel:${b.guestPhone}`} className="flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300">
+                        <a href={`tel:${b.guestPhone}`} className="flex items-center gap-1.5 text-sm text-fire hover:text-fire/75">
                           <Icon name="Phone" size={12} />
                           {b.guestPhone}
                         </a>
@@ -200,10 +200,10 @@ function TransferPanel({
               const isFull = slot.free === 0;
               const noFit = slot.free < booking.quadsCount;
 
-              let statusColor = "text-green-400";
-              let statusBg = "bg-green-900/15 border-green-700/30";
+              let statusColor = "text-fire";
+              let statusBg = "bg-fire/10 border-fire/30";
               if (slot.free <= 2 && slot.free > 0) { statusColor = "text-gold"; statusBg = "bg-gold/10 border-gold/30"; }
-              if (isFull || noFit) { statusColor = "text-red-400"; statusBg = "bg-red-900/15 border-red-700/30"; }
+              if (isFull || noFit) { statusColor = "text-red-500"; statusBg = "bg-red-50 border-red-200"; }
 
               return (
                 <button
@@ -253,8 +253,8 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
   };
 
   const statusColors: Record<string, string> = {
-    active: "text-green-400 bg-green-900/20 border-green-700/30",
-    cancelled: "text-red-400 bg-red-900/20 border-red-700/30",
+    active: "text-fire bg-fire/10 border-fire/30",
+    cancelled: "text-red-500 bg-red-50 border-red-200",
     transferred: "text-gold bg-gold/10 border-gold/30",
   };
   const statusLabels: Record<string, string> = {
@@ -279,7 +279,7 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
         </div>
         <div className="text-right text-xs text-muted-foreground font-display">
           {booking.prepayment
-            ? <span className="text-green-400 font-bold">{booking.prepayment}₽</span>
+            ? <span className="text-fire font-bold">{booking.prepayment}₽</span>
             : <span>Без предоплаты</span>}
         </div>
       </div>
@@ -288,7 +288,7 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
         <div className="space-y-1.5">
           <p className="font-display text-xs tracking-wider text-fire mb-2">ГОСТЬ</p>
           <p className="text-foreground">{booking.guestName}</p>
-          <a href={`tel:${booking.guestPhone}`} className="flex items-center gap-1.5 text-green-400 hover:text-green-300 transition-colors">
+          <a href={`tel:${booking.guestPhone}`} className="flex items-center gap-1.5 text-fire hover:text-fire/75 transition-colors">
             <Icon name="Phone" size={13} />{booking.guestPhone}
           </a>
           <p className="flex items-start gap-1.5 text-muted-foreground text-xs">
@@ -298,7 +298,7 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
         <div className="space-y-1.5">
           <p className="font-display text-xs tracking-wider text-gold mb-2">АГЕНТ</p>
           <p className="text-foreground">{booking.agentName}</p>
-          <a href={`tel:${booking.agentPhone}`} className="flex items-center gap-1.5 text-green-400 hover:text-green-300 transition-colors">
+          <a href={`tel:${booking.agentPhone}`} className="flex items-center gap-1.5 text-fire hover:text-fire/75 transition-colors">
             <Icon name="Phone" size={13} />{booking.agentPhone}
           </a>
           <p className="text-xs text-muted-foreground">{booking.agentCompany}</p>
@@ -316,7 +316,7 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
         <div className="flex gap-2 pt-3 border-t border-border">
           <a
             href={`tel:${booking.guestPhone}`}
-            className="flex items-center gap-1.5 text-xs font-display tracking-wider border border-green-700/50 text-green-400 hover:bg-green-900/20 px-3 py-1.5 rounded-sm transition-all"
+            className="flex items-center gap-1.5 text-xs font-display tracking-wider border border-fire/30 text-fire hover:bg-fire/10 px-3 py-1.5 rounded-sm transition-all"
           >
             <Icon name="Phone" size={12} />ГОСТЬ
           </a>
@@ -334,7 +334,7 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
           </button>
           <button
             onClick={cancel}
-            className="flex items-center gap-1.5 text-xs font-display tracking-wider border border-border hover:border-red-500/50 hover:text-red-400 px-3 py-1.5 rounded-sm transition-all ml-auto"
+            className="flex items-center gap-1.5 text-xs font-display tracking-wider border border-border hover:border-red-500/50 hover:text-red-500 px-3 py-1.5 rounded-sm transition-all ml-auto"
           >
             <Icon name="X" size={12} />ОТМЕНИТЬ
           </button>
@@ -409,8 +409,8 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
               onClick={() => onSelect(dateStr)}
               className={`aspect-square flex flex-col items-center justify-center text-xs rounded-sm transition-all relative ${
                 isSel ? "bg-fire text-white font-bold"
-                : dayFull ? "bg-red-900/30 text-red-400 border border-red-800/30"
-                : almostFull ? "bg-gold/10 text-gold border border-gold/25 hover:bg-gold/20"
+                : dayFull ? "bg-red-50 text-red-500 border border-red-200"
+                : almostFull ? "bg-gold/20 text-gold border border-gold/40 hover:bg-gold/30"
                 : isToday ? "border border-fire/50 text-fire hover:bg-fire/10"
                 : count > 0 ? "hover:bg-fire/10 text-foreground"
                 : "hover:bg-white/5 text-muted-foreground/60"
@@ -418,7 +418,7 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
             >
               {day}
               {dayFull && !isSel && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[7px] text-red-400 leading-none">✕</span>
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[7px] text-red-500 leading-none">✕</span>
               )}
               {!dayFull && count > 0 && !isSel && (
                 <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
@@ -434,8 +434,8 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
 
       <div className="flex gap-3 mt-3 text-xs">
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-fire" /><span className="text-muted-foreground">Выбран</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-gold/10 border border-gold/25" /><span className="text-muted-foreground">Мало мест</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-900/30 border border-red-800/30" /><span className="text-muted-foreground">Занят</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-gold/20 border border-gold/40" /><span className="text-muted-foreground">Мало мест</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-50 border border-red-200" /><span className="text-muted-foreground">Занят</span></div>
       </div>
     </div>
   );
@@ -536,7 +536,7 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
         {(view === "bookings" || view === "calendar") && (
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: "Всего активных", value: activeCount, icon: "CheckCircle", color: "text-green-400" },
+              { label: "Всего активных", value: activeCount, icon: "CheckCircle", color: "text-fire" },
               { label: "Сегодня", value: todayCount, icon: "Calendar", color: "text-fire" },
               { label: "Всего записей", value: bookings.length, icon: "List", color: "text-muted-foreground" },
             ].map(stat => (
@@ -610,7 +610,7 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
                     <div key={slot.id} className="bg-surface border border-border rounded-sm p-3">
                       <div className="flex justify-between text-sm mb-1.5">
                         <span className="font-display font-bold">{slot.time}</span>
-                        <span className={cnt >= slot.quadsTotal ? "text-red-400" : cnt >= 5 ? "text-gold" : "text-green-400"}>
+                        <span className={cnt >= slot.quadsTotal ? "text-red-500" : cnt >= 5 ? "text-gold" : "text-fire"}>
                           {cnt}/{slot.quadsTotal}
                         </span>
                       </div>

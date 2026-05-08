@@ -67,8 +67,8 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				fire: '#FF5500',
-				gold: '#FFB800',
+				fire: '#2da868',
+				gold: '#0e9db5',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

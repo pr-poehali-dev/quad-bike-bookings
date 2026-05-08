@@ -76,9 +76,9 @@ function StepCalendar({ onSelect }: { onSelect: (date: string) => void }) {
           } else if (isSel) {
             cls += "bg-fire text-white font-bold scale-110 shadow-lg shadow-fire/30";
           } else if (dayFull) {
-            cls += "bg-red-900/25 text-red-400 border border-red-800/40 cursor-not-allowed line-through";
+            cls += "bg-red-100 text-red-500 border border-red-200 cursor-not-allowed line-through";
           } else if (dayBusy) {
-            cls += "bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 cursor-pointer";
+            cls += "bg-gold/15 text-gold border border-gold/40 hover:bg-gold/25 cursor-pointer";
           } else {
             cls += "hover:bg-fire/20 hover:text-fire cursor-pointer border border-transparent hover:border-fire/30";
           }
@@ -88,7 +88,7 @@ function StepCalendar({ onSelect }: { onSelect: (date: string) => void }) {
               onClick={() => { setSelected(dateStr); onSelect(dateStr); }}>
               {day}
               {dayFull && !isPast && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] text-red-400 leading-none">✕</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] text-red-500 leading-none">✕</span>
               )}
             </button>
           );
@@ -101,11 +101,11 @@ function StepCalendar({ onSelect }: { onSelect: (date: string) => void }) {
           <span className="text-muted-foreground">Свободно</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-gold/10 border border-gold/30" />
+          <div className="w-3 h-3 rounded-sm bg-gold/20 border border-gold/40" />
           <span className="text-muted-foreground">Мало мест</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-red-900/25 border border-red-800/40" />
+          <div className="w-3 h-3 rounded-sm bg-red-100 border border-red-200" />
           <span className="text-muted-foreground">День занят</span>
         </div>
       </div>
@@ -127,11 +127,11 @@ function StepSlot({ date, onSelect }: { date: string; onSelect: (slotId: string,
         const isFull = free === 0;
         const isSel = selected === slot.id;
 
-        let statusColor = "text-green-400";
-        let statusBg = "bg-green-900/20 border-green-700/30";
-        let dotColor = "bg-green-500";
-        if (free <= 2 && free > 0) { statusColor = "text-gold"; statusBg = "bg-gold/10 border-gold/30"; dotColor = "bg-gold"; }
-        if (isFull) { statusColor = "text-red-400"; statusBg = "bg-red-900/20 border-red-700/30"; dotColor = "bg-red-500"; }
+        let statusColor = "text-fire";
+        let statusBg = "bg-fire/10 border-fire/30";
+        let dotColor = "bg-fire";
+        if (free <= 2 && free > 0) { statusColor = "text-gold"; statusBg = "bg-gold/15 border-gold/40"; dotColor = "bg-gold"; }
+        if (isFull) { statusColor = "text-red-500"; statusBg = "bg-red-50 border-red-200"; dotColor = "bg-red-400"; }
 
         return (
           <button
