@@ -249,7 +249,7 @@ function StepForm({ onSubmit }: { onSubmit: (data: BookingFormData) => void }) {
   const [companyMode, setCompanyMode] = useState<"list" | "manual">("list");
   const [form, setForm] = useState<BookingFormData>({
     guestName: "", guestPhone: "", guestAddress: "",
-    agentName: "", agentPhone: "", agentCompany: "", notes: "",
+    agentName: "", agentPhone: "", agentCompany: "",
     prepayment: "none", customPrepayment: "",
   });
 
@@ -344,16 +344,6 @@ function StepForm({ onSubmit }: { onSubmit: (data: BookingFormData) => void }) {
                 onChange={e => set("agentCompany", e.target.value)}
                 placeholder="Название компании" className={inputCls} />
             )}
-          </div>
-          <div>
-            <label className={labelCls}>ПРИМЕЧАНИЕ</label>
-            <textarea
-              value={form.notes}
-              onChange={e => set("notes", e.target.value)}
-              placeholder="Особые пожелания, уточнения..."
-              rows={2}
-              className="w-full bg-surface border border-border focus:border-fire/60 rounded-sm px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/40 resize-none"
-            />
           </div>
         </div>
       </div>
@@ -465,7 +455,6 @@ export default function BookingPage() {
         agentName: form.agentName,
         agentPhone: form.agentPhone,
         agentCompany: form.agentCompany,
-        notes: form.notes,
         prepayment: prepaymentValue,
       });
       setSuccessData({ name: form.guestName, date, slotTime, quadsCount });
