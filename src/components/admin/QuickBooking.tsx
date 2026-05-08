@@ -39,6 +39,7 @@ export default function QuickBooking({ onDone }: QuickBookingProps) {
   const [agentName, setAgentName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
   const [agentCompany, setAgentCompany] = useState("");
+  const [notes, setNotes] = useState("");
   const [prepayment, setPrepayment] = useState("none");
   const [customPrepayment, setCustomPrepayment] = useState("");
 
@@ -112,6 +113,7 @@ export default function QuickBooking({ onDone }: QuickBookingProps) {
         agentName,
         agentPhone,
         agentCompany,
+        notes,
         prepayment: prepaymentValue,
       });
       setBookingId((result as { id?: string })?.id || "");
@@ -290,6 +292,16 @@ export default function QuickBooking({ onDone }: QuickBookingProps) {
             ) : (
               <input type="text" value={agentCompany} onChange={e => setAgentCompany(e.target.value)} placeholder="Название компании" className={inputCls} />
             )}
+          </div>
+          <div className="col-span-2">
+            <label className={labelCls}>ПРИМЕЧАНИЕ</label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Особые пожелания, уточнения..."
+              rows={2}
+              className="w-full bg-background border border-border focus:border-fire/60 rounded-sm px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/40 resize-none"
+            />
           </div>
         </div>
       </div>

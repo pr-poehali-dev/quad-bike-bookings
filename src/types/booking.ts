@@ -20,6 +20,7 @@ export interface Booking {
   agentName: string;
   agentPhone: string;
   agentCompany: string;
+  notes: string;
   prepayment: number | null;
   status: "active" | "cancelled" | "transferred";
   createdAt: string;
@@ -33,6 +34,7 @@ export interface BookingFormData {
   agentName: string;
   agentPhone: string;
   agentCompany: string;
+  notes: string;
   prepayment: string;
   customPrepayment: string;
 }

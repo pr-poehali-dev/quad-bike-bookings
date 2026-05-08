@@ -121,6 +121,7 @@ def handler(event: dict, context) -> dict:
         agent_name    = str(body.get("agentName", ""))[:200].strip()
         agent_phone   = str(body.get("agentPhone", ""))[:50].strip()
         agent_company = str(body.get("agentCompany", ""))[:200].strip()
+        notes         = str(body.get("notes", ""))[:1000].strip()
         prepayment    = body.get("prepayment")
         if prepayment is not None:
             prepayment = max(0, int(prepayment))
@@ -152,13 +153,13 @@ def handler(event: dict, context) -> dict:
                     INSERT INTO bookings
                       (id, date, slot_id, slot_time, quads_count,
                        guest_name, guest_phone, guest_address,
-                       agent_name, agent_phone, agent_company, prepayment, status)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active')
+                       agent_name, agent_phone, agent_company, notes, prepayment, status)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active')
                     RETURNING *
                 """, (
                     booking_id, date, slot_id, slot["time"], quads,
                     guest_name, guest_phone, guest_address,
-                    agent_name, agent_phone, agent_company, prepayment
+                    agent_name, agent_phone, agent_company, notes, prepayment
                 ))
                 new_booking = dict(cur.fetchone())
             conn.commit()
@@ -173,7 +174,7 @@ def handler(event: dict, context) -> dict:
                 cur.execute("""
                     SELECT id, date, slot_id, slot_time, quads_count,
                            guest_name, guest_phone, guest_address,
-                           agent_name, agent_phone, agent_company,
+                           agent_name, agent_phone, agent_company, notes,
                            prepayment, status, transferred_to, created_at
                     FROM bookings ORDER BY date, slot_time, created_at
                 """)

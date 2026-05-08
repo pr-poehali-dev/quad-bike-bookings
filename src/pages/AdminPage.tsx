@@ -38,6 +38,7 @@ function mapBooking(raw: Record<string, unknown>): Booking {
     agentName: (raw.agent_name ?? raw.agentName) as string,
     agentPhone: (raw.agent_phone ?? raw.agentPhone) as string,
     agentCompany: (raw.agent_company ?? raw.agentCompany) as string,
+    notes: (raw.notes ?? "") as string,
     prepayment: (raw.prepayment ?? null) as number | null,
     status: raw.status as "active" | "cancelled" | "transferred",
     createdAt: (raw.created_at ?? raw.createdAt) as string,
@@ -374,6 +375,13 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
           <p className="text-xs text-muted-foreground">{booking.agentCompany}</p>
         </div>
       </div>
+
+      {booking.notes && (
+        <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-sm px-3 py-2 mb-3">
+          <Icon name="MessageSquare" size={11} className="mt-0.5 flex-shrink-0" />
+          <span>{booking.notes}</span>
+        </div>
+      )}
 
       {booking.transferredTo && (
         <div className="flex items-center gap-1.5 text-xs text-gold mb-3">
