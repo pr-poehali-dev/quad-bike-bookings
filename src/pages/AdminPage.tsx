@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { Booking } from "@/types/booking";
-import { getBookings, updateBooking, getAdminPassword, getTimeSlots, getSlotsWithAvailability, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
+import { api } from "@/lib/api";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import QuickBooking from "@/components/admin/QuickBooking";
 import AgentReport from "@/components/admin/AgentReport";
@@ -24,15 +24,47 @@ function displayDate(dateStr: string) {
   return `${d}.${m}.${y}`;
 }
 
+// Map snake_case API response to camelCase Booking type
+function mapBooking(raw: Record<string, unknown>): Booking {
+  return {
+    id: raw.id as string,
+    date: raw.date as string,
+    slotId: (raw.slot_id ?? raw.slotId) as string,
+    slotTime: (raw.slot_time ?? raw.slotTime) as string,
+    quadsCount: (raw.quads_count ?? raw.quadsCount) as number,
+    guestName: (raw.guest_name ?? raw.guestName) as string,
+    guestPhone: (raw.guest_phone ?? raw.guestPhone) as string,
+    guestAddress: (raw.guest_address ?? raw.guestAddress) as string,
+    agentName: (raw.agent_name ?? raw.agentName) as string,
+    agentPhone: (raw.agent_phone ?? raw.agentPhone) as string,
+    agentCompany: (raw.agent_company ?? raw.agentCompany) as string,
+    prepayment: (raw.prepayment ?? null) as number | null,
+    status: raw.status as "active" | "cancelled" | "transferred",
+    createdAt: (raw.created_at ?? raw.createdAt) as string,
+    transferredTo: (raw.transferred_to ?? raw.transferredTo) as string | undefined,
+  };
+}
+
 // Login screen
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [pw, setPw] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw === getAdminPassword()) { onLogin(); }
-    else { setError(true); setPw(""); setTimeout(() => setError(false), 2000); }
+    setLoading(true);
+    try {
+      await api.auth(pw);
+      localStorage.setItem("quad_admin_token", pw);
+      onLogin();
+    } catch {
+      setError(true);
+      setPw("");
+      setTimeout(() => setError(false), 2000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,8 +93,12 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             />
             {error && <p className="text-red-500 text-xs mt-1.5 font-display tracking-wider">НЕВЕРНЫЙ ПАРОЛЬ</p>}
           </div>
-          <button type="submit" className="w-full bg-fire hover:bg-fire/85 text-white font-display tracking-widest py-3.5 text-sm transition-all">
-            ВОЙТИ →
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-fire hover:bg-fire/85 disabled:opacity-50 text-white font-display tracking-widest py-3.5 text-sm transition-all"
+          >
+            {loading ? "ПРОВЕРКА..." : "ВОЙТИ →"}
           </button>
         </form>
       </div>
@@ -71,9 +107,14 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 }
 
 // Transfer list modal
-function TransferList({ date, bookings, onClose }: { date: string; bookings: Booking[]; onClose: () => void }) {
+function TransferList({ date, bookings, slots, onClose }: {
+  date: string;
+  bookings: Booking[];
+  slots: { id: string; time: string; label: string }[];
+  onClose: () => void;
+}) {
   const active = bookings.filter(b => b.date === date && b.status === "active");
-  const bySlot = getTimeSlots().map(slot => ({
+  const bySlot = slots.map(slot => ({
     slot,
     bookings: active.filter(b => b.slotId === slot.id),
   })).filter(g => g.bookings.length > 0);
@@ -139,7 +180,16 @@ function TransferList({ date, bookings, onClose }: { date: string; bookings: Boo
   );
 }
 
-// Transfer panel — выбор даты → слота с остатками
+interface AvailabilitySlot {
+  id: string;
+  time: string;
+  label: string;
+  quads_total: number;
+  booked: number;
+  free: number;
+}
+
+// Transfer panel — choose date → slot with availability
 function TransferPanel({
   booking,
   onConfirm,
@@ -151,12 +201,21 @@ function TransferPanel({
 }) {
   const [step, setStep] = useState<"date" | "slot">("date");
   const [newDate, setNewDate] = useState("");
-  const [slots, setSlots] = useState<ReturnType<typeof getSlotsWithAvailability>>([]);
+  const [availSlots, setAvailSlots] = useState<AvailabilitySlot[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleDateNext = () => {
+  const handleDateNext = async () => {
     if (!newDate) return;
-    setSlots(getSlotsWithAvailability(newDate, booking.id));
-    setStep("slot");
+    setLoading(true);
+    try {
+      const data: AvailabilitySlot[] = await api.getAvailability(newDate);
+      setAvailSlots(data);
+      setStep("slot");
+    } catch {
+      // remain on date step
+    } finally {
+      setLoading(false);
+    }
   };
 
   const today = new Date().toISOString().split("T")[0];
@@ -176,10 +235,10 @@ function TransferPanel({
             />
             <button
               onClick={handleDateNext}
-              disabled={!newDate}
+              disabled={!newDate || loading}
               className="bg-fire text-white font-display text-xs tracking-wider px-4 py-2 rounded-sm hover:bg-fire/85 disabled:opacity-40 transition-all"
             >
-              ДАЛЕЕ →
+              {loading ? "..." : "ДАЛЕЕ →"}
             </button>
             <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-sm hover:bg-white/10 transition-colors">
               <Icon name="X" size={14} className="text-muted-foreground" />
@@ -190,13 +249,12 @@ function TransferPanel({
         <>
           <div className="flex items-center gap-2 mb-1">
             <button onClick={() => setStep("date")} className="text-xs text-muted-foreground hover:text-fire transition-colors flex items-center gap-1">
-              <Icon name="ChevronLeft" size={12} />
-              {newDate}
+              <Icon name="ChevronLeft" size={12} /> назад
             </button>
-            <span className="text-xs text-muted-foreground">→ выберите слот</span>
+            <span className="text-xs font-display tracking-wider text-muted-foreground">ВЫБЕРИТЕ СЛОТ НА {displayDate(newDate)}</span>
           </div>
-          <div className="space-y-1.5">
-            {slots.map(slot => {
+          <div className="space-y-2">
+            {availSlots.map(slot => {
               const isFull = slot.free === 0;
               const noFit = slot.free < booking.quadsCount;
 
@@ -221,7 +279,7 @@ function TransferPanel({
                     <span className="text-xs text-muted-foreground">{slot.label}</span>
                   </div>
                   <div className={`text-xs font-display tracking-wider px-2 py-1 rounded-sm border ${statusBg} ${statusColor}`}>
-                    {isFull ? "ЗАНЯТО" : noFit ? `только ${slot.free} кв.` : `${slot.free}/${slot.quadsTotal} св.`}
+                    {isFull ? "ЗАНЯТО" : noFit ? `только ${slot.free} кв.` : `${slot.free}/${slot.quads_total} св.`}
                   </div>
                 </button>
               );
@@ -237,19 +295,31 @@ function TransferPanel({
 function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => void }) {
   const [showTransfer, setShowTransfer] = useState(false);
 
-  const cancel = () => {
-    if (confirm("Отменить запись?")) { updateBooking(booking.id, { status: "cancelled" }); onUpdate(); }
+  const cancel = async () => {
+    if (confirm("Отменить запись?")) {
+      try {
+        await api.updateBooking(booking.id, { status: "cancelled" });
+        onUpdate();
+      } catch {
+        alert("Не удалось отменить запись");
+      }
+    }
   };
-  const confirmTransfer = (newDate: string, slotId: string, slotTime: string) => {
-    updateBooking(booking.id, {
-      status: "transferred",
-      transferredTo: newDate,
-      date: newDate,
-      slotId,
-      slotTime,
-    });
-    onUpdate();
-    setShowTransfer(false);
+
+  const confirmTransfer = async (newDate: string, slotId: string, slotTime: string) => {
+    try {
+      await api.updateBooking(booking.id, {
+        status: "transferred",
+        transferred_to: newDate,
+        date: newDate,
+        slot_id: slotId,
+        slot_time: slotTime,
+      });
+      onUpdate();
+      setShowTransfer(false);
+    } catch {
+      alert("Не удалось перенести запись");
+    }
   };
 
   const statusColors: Record<string, string> = {
@@ -387,11 +457,13 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
           <Icon name="ChevronRight" size={14} className="text-muted-foreground" />
         </button>
       </div>
+
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS_OF_WEEK.map(d => (
-          <div key={d} className="text-center text-xs text-muted-foreground/50 py-0.5">{d}</div>
+          <div key={d} className="text-center text-[10px] text-muted-foreground/50 font-display py-0.5">{d}</div>
         ))}
       </div>
+
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => {
           if (!day) return <div key={`e-${i}`} />;
@@ -399,9 +471,6 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
           const count = countForDate(dateStr);
           const isSel = selectedDate === dateStr;
           const isToday = dateStr === fmtDate(today.getFullYear(), today.getMonth(), today.getDate());
-          const dayFull = isDayFull(dateStr);
-          const freeTotal = getDayFreeTotal(dateStr);
-          const almostFull = !dayFull && freeTotal <= 4 && count > 0;
 
           return (
             <button
@@ -409,21 +478,16 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
               onClick={() => onSelect(dateStr)}
               className={`aspect-square flex flex-col items-center justify-center text-xs rounded-sm transition-all relative ${
                 isSel ? "bg-fire text-white font-bold"
-                : dayFull ? "bg-red-50 text-red-500 border border-red-200"
-                : almostFull ? "bg-gold/20 text-gold border border-gold/40 hover:bg-gold/30"
                 : isToday ? "border border-fire/50 text-fire hover:bg-fire/10"
                 : count > 0 ? "hover:bg-fire/10 text-foreground"
                 : "hover:bg-white/5 text-muted-foreground/60"
               }`}
             >
               {day}
-              {dayFull && !isSel && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[7px] text-red-500 leading-none">✕</span>
-              )}
-              {!dayFull && count > 0 && !isSel && (
+              {!isSel && count > 0 && (
                 <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                   {Array.from({ length: Math.min(count, 3) }, (_, j) => (
-                    <div key={j} className={`w-1 h-1 rounded-full ${almostFull ? "bg-gold" : "bg-fire"}`} />
+                    <div key={j} className="w-1 h-1 rounded-full bg-fire" />
                   ))}
                 </div>
               )}
@@ -455,14 +519,36 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
   const [authed, setAuthed] = useState(false);
   const [view, setView] = useState<AdminView>("bookings");
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
   const [filterDate, setFilterDate] = useState<string | null>(null);
   const [showTransferList, setShowTransferList] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "cancelled">("active");
   const [search, setSearch] = useState("");
 
-  const reload = () => setBookings(getBookings());
+  // Unique slot list derived from bookings (for TransferList)
+  const [slots, setSlots] = useState<{ id: string; time: string; label: string }[]>([]);
 
-  useEffect(() => { if (authed) reload(); }, [authed]);
+  const reload = async () => {
+    setLoadingBookings(true);
+    try {
+      const raw: Record<string, unknown>[] = await api.getBookings();
+      const mapped = raw.map(mapBooking);
+      setBookings(mapped);
+    } catch {
+      // silently fail — bookings remain as-is
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  // Also load slot definitions for the transfer list and calendar view
+  useEffect(() => {
+    if (!authed) return;
+    reload();
+    api.getSlots()
+      .then((data: { id: string; time: string; label: string }[]) => setSlots(data))
+      .catch(() => {});
+  }, [authed]);
 
   if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
 
@@ -604,20 +690,14 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
             <div>
               <h3 className="font-display text-sm tracking-widest text-muted-foreground mb-3">ЗАГРУЗКА ПО СЛОТАМ</h3>
               <div className="space-y-2">
-                {filterDate ? getTimeSlots().map(slot => {
+                {filterDate ? slots.map(slot => {
                   const cnt = bookings.filter(b => b.date === filterDate && b.slotId === slot.id && b.status === "active")
                     .reduce((s, b) => s + b.quadsCount, 0);
-                  const pct = Math.round((cnt / slot.quadsTotal) * 100);
                   return (
                     <div key={slot.id} className="bg-surface border border-border rounded-sm p-3">
                       <div className="flex justify-between text-sm mb-1.5">
                         <span className="font-display font-bold">{slot.time}</span>
-                        <span className={cnt >= slot.quadsTotal ? "text-red-500" : cnt >= 5 ? "text-gold" : "text-fire"}>
-                          {cnt}/{slot.quadsTotal}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all bg-fire" style={{ width: `${pct}%` }} />
+                        <span className="text-fire">{cnt} кв.</span>
                       </div>
                     </div>
                   );
@@ -673,7 +753,9 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
             </div>
 
             {/* Bookings list */}
-            {filtered.length === 0 ? (
+            {loadingBookings ? (
+              <div className="text-center py-16 text-muted-foreground">Загрузка...</div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Icon name="CalendarX" size={40} className="mx-auto mb-4 opacity-30" />
                 <p className="font-display tracking-wider">ЗАПИСЕЙ НЕ НАЙДЕНО</p>
@@ -690,7 +772,12 @@ export default function AdminPage({ onBack }: { onBack: () => void }) {
       </div>
 
       {showTransferList && filterDate && (
-        <TransferList date={filterDate} bookings={bookings} onClose={() => setShowTransferList(false)} />
+        <TransferList
+          date={filterDate}
+          bookings={bookings}
+          slots={slots}
+          onClose={() => setShowTransferList(false)}
+        />
       )}
     </div>
   );

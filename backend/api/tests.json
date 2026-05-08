@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "name": "POST /auth — неверный пароль возвращает 401",
+      "method": "POST",
+      "path": "/auth",
+      "body": {"password": "wrongpassword"},
+      "expectedStatus": 401
+    },
+    {
+      "name": "POST /auth — верный пароль",
+      "method": "POST",
+      "path": "/auth",
+      "body": {"password": "admin2024"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET /slots — список слотов",
+      "method": "GET",
+      "path": "/slots",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET /companies — пустой список",
+      "method": "GET",
+      "path": "/companies",
+      "expectedStatus": 200
+    }
+  ]
+}
