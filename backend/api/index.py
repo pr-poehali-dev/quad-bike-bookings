@@ -1,19 +1,19 @@
 """
-API для системы бронирования квадроциклов КвадроЛидер. v2
-Все запросы — POST на корневой URL с полем action.
-Брони защищены от овербукинга через SELECT FOR UPDATE.
+API для системы бронирования квадроциклов КвадроЛидер.
+Все операции с бронями защищены от овербукинга через SELECT FOR UPDATE.
 """
 import json
 import os
 import hashlib
 import uuid
+from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 CORS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token",
 }
 
 def get_conn():
@@ -28,19 +28,24 @@ def err(msg, status=400):
 def sha256(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()
 
-def check_admin(token: str) -> bool:
+def check_admin(event) -> bool:
+    token = event.get("headers", {}).get("X-Admin-Token", "")
     if not token:
         return False
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT value FROM settings WHERE key = 'admin_password_hash'")
             row = cur.fetchone()
-            return row and row[0] == sha256(token)
+            if not row:
+                return False
+            return row[0] == sha256(token)
 
 def handler(event: dict, context) -> dict:
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
+    method = event.get("httpMethod", "GET")
+    path = event.get("path", "/")
     body = {}
     if event.get("body"):
         try:
@@ -48,20 +53,33 @@ def handler(event: dict, context) -> dict:
         except Exception:
             return err("Invalid JSON")
 
-    action = body.get("action", "")
-    token = body.get("token", "")
-
-    # ── getSlots ──────────────────────────────────────────────────
-    if action == "getSlots":
+    # ── GET /slots ────────────────────────────────────────────────
+    if method == "GET" and path == "/slots":
         with get_conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("SELECT id, time, label, quads_total FROM time_slots ORDER BY sort_order, time")
-                slots = [dict(s) for s in cur.fetchall()]
-        return resp(slots)
+                slots = cur.fetchall()
+        return resp([dict(s) for s in slots])
 
-    # ── getAvailability ───────────────────────────────────────────
-    if action == "getAvailability":
-        date = str(body.get("date", ""))[:10]
+    # ── GET /bookings ─────────────────────────────────────────────
+    if method == "GET" and path == "/bookings":
+        if not check_admin(event):
+            return err("Unauthorized", 401)
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, date, slot_id, slot_time, quads_count,
+                           guest_name, guest_phone, guest_address,
+                           agent_name, agent_phone, agent_company,
+                           prepayment, status, transferred_to, created_at
+                    FROM bookings ORDER BY date, slot_time, created_at
+                """)
+                bookings = cur.fetchall()
+        return resp([dict(b) for b in bookings])
+
+    # ── GET /availability?date=YYYY-MM-DD ─────────────────────────
+    if method == "GET" and path == "/availability":
+        date = (event.get("queryStringParameters") or {}).get("date", "")
         if not date:
             return err("date required")
         with get_conn() as conn:
@@ -81,29 +99,8 @@ def handler(event: dict, context) -> dict:
             result.append({**dict(s), "booked": booked, "free": s["quads_total"] - booked})
         return resp(result)
 
-    # ── getCompanies ──────────────────────────────────────────────
-    if action == "getCompanies":
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT name FROM companies ORDER BY name")
-                companies = [r[0] for r in cur.fetchall()]
-        return resp(companies)
-
-    # ── auth ──────────────────────────────────────────────────────
-    if action == "auth":
-        password = str(body.get("password", ""))
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT value FROM settings WHERE key = 'admin_password_hash'")
-                row = cur.fetchone()
-        if not row:
-            return err("Auth not configured", 500)
-        if row[0] == sha256(password):
-            return resp({"ok": True})
-        return err("Неверный пароль", 401)
-
-    # ── book ──────────────────────────────────────────────────────
-    if action == "book":
+    # ── POST /book ────────────────────────────────────────────────
+    if method == "POST" and path == "/book":
         required = ["date", "slotId", "quadsCount", "guestName", "guestPhone", "guestAddress"]
         for f in required:
             if not body.get(f):
@@ -115,13 +112,13 @@ def handler(event: dict, context) -> dict:
         if quads < 1 or quads > 20:
             return err("Invalid quadsCount")
 
-        guest_name    = str(body["guestName"])[:200].strip()
-        guest_phone   = str(body["guestPhone"])[:50].strip()
+        guest_name = str(body["guestName"])[:200].strip()
+        guest_phone = str(body["guestPhone"])[:50].strip()
         guest_address = str(body["guestAddress"])[:500].strip()
-        agent_name    = str(body.get("agentName", ""))[:200].strip()
-        agent_phone   = str(body.get("agentPhone", ""))[:50].strip()
+        agent_name = str(body.get("agentName", ""))[:200].strip()
+        agent_phone = str(body.get("agentPhone", ""))[:50].strip()
         agent_company = str(body.get("agentCompany", ""))[:200].strip()
-        prepayment    = body.get("prepayment")
+        prepayment = body.get("prepayment")
         if prepayment is not None:
             prepayment = max(0, int(prepayment))
 
@@ -129,12 +126,14 @@ def handler(event: dict, context) -> dict:
 
         with get_conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Получаем слот
                 cur.execute("SELECT quads_total, time FROM time_slots WHERE id = %s", (slot_id,))
                 slot = cur.fetchone()
                 if not slot:
                     return err("Slot not found")
 
                 # АТОМАРНАЯ БЛОКИРОВКА — SELECT FOR UPDATE
+                # Блокируем строки броней этого слота на эту дату
                 cur.execute("""
                     SELECT COALESCE(SUM(quads_count), 0) AS booked
                     FROM bookings
@@ -162,33 +161,18 @@ def handler(event: dict, context) -> dict:
                 ))
                 new_booking = dict(cur.fetchone())
             conn.commit()
+
         return resp(new_booking, 201)
 
-    # ── getBookings (admin) ───────────────────────────────────────
-    if action == "getBookings":
-        if not check_admin(token):
+    # ── PUT /bookings/<id> ────────────────────────────────────────
+    if method == "PUT" and path.startswith("/bookings/"):
+        if not check_admin(event):
             return err("Unauthorized", 401)
-        with get_conn() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT id, date, slot_id, slot_time, quads_count,
-                           guest_name, guest_phone, guest_address,
-                           agent_name, agent_phone, agent_company,
-                           prepayment, status, transferred_to, created_at
-                    FROM bookings ORDER BY date, slot_time, created_at
-                """)
-                bookings = [dict(b) for b in cur.fetchall()]
-        return resp(bookings)
-
-    # ── updateBooking (admin) ─────────────────────────────────────
-    if action == "updateBooking":
-        if not check_admin(token):
-            return err("Unauthorized", 401)
-        booking_id = str(body.get("id", ""))
+        booking_id = path.split("/")[-1]
         allowed = {"status", "transferred_to"}
         updates = {k: v for k, v in body.items() if k in allowed}
-        if not booking_id or not updates:
-            return err("id and fields required")
+        if not updates:
+            return err("Nothing to update")
         set_clause = ", ".join(f"{k} = %s" for k in updates)
         values = list(updates.values()) + [booking_id]
         with get_conn() as conn:
@@ -200,11 +184,21 @@ def handler(event: dict, context) -> dict:
             conn.commit()
         return resp(dict(row))
 
-    # ── saveSlots (admin) ─────────────────────────────────────────
-    if action == "saveSlots":
-        if not check_admin(token):
+    # ── GET /companies ────────────────────────────────────────────
+    if method == "GET" and path == "/companies":
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name FROM companies ORDER BY name")
+                companies = [r[0] for r in cur.fetchall()]
+        return resp(companies)
+
+    # ── POST /settings/slots ──────────────────────────────────────
+    if method == "POST" and path == "/settings/slots":
+        if not check_admin(event):
             return err("Unauthorized", 401)
         slots = body.get("slots", [])
+        if not isinstance(slots, list):
+            return err("slots must be array")
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM time_slots")
@@ -216,9 +210,9 @@ def handler(event: dict, context) -> dict:
             conn.commit()
         return resp({"ok": True})
 
-    # ── saveCompanies (admin) ─────────────────────────────────────
-    if action == "saveCompanies":
-        if not check_admin(token):
+    # ── POST /settings/companies ──────────────────────────────────
+    if method == "POST" and path == "/settings/companies":
+        if not check_admin(event):
             return err("Unauthorized", 401)
         companies = body.get("companies", [])
         with get_conn() as conn:
@@ -230,9 +224,9 @@ def handler(event: dict, context) -> dict:
             conn.commit()
         return resp({"ok": True})
 
-    # ── changePassword (admin) ────────────────────────────────────
-    if action == "changePassword":
-        if not check_admin(token):
+    # ── POST /settings/password ───────────────────────────────────
+    if method == "POST" and path == "/settings/password":
+        if not check_admin(event):
             return err("Unauthorized", 401)
         new_pw = str(body.get("newPassword", ""))
         if len(new_pw) < 4:
@@ -246,4 +240,17 @@ def handler(event: dict, context) -> dict:
             conn.commit()
         return resp({"ok": True})
 
-    return err("Unknown action", 404)
+    # ── POST /auth ────────────────────────────────────────────────
+    if method == "POST" and path == "/auth":
+        password = str(body.get("password", ""))
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT value FROM settings WHERE key = 'admin_password_hash'")
+                row = cur.fetchone()
+        if not row:
+            return err("Auth not configured", 500)
+        if row[0] == sha256(password):
+            return resp({"ok": True, "token": password})
+        return err("Wrong password", 401)
+
+    return err("Not found", 404)
