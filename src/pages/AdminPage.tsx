@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { Booking } from "@/types/booking";
-import { getBookings, updateBooking, ADMIN_PASSWORD, TIME_SLOTS } from "@/lib/bookingStore";
+import { getBookings, updateBooking, ADMIN_PASSWORD, TIME_SLOTS, getSlotsWithAvailability, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
 
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const DAYS_OF_WEEK = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
@@ -136,17 +136,115 @@ function TransferList({ date, bookings, onClose }: { date: string; bookings: Boo
   );
 }
 
+// Transfer panel — выбор даты → слота с остатками
+function TransferPanel({
+  booking,
+  onConfirm,
+  onCancel,
+}: {
+  booking: Booking;
+  onConfirm: (date: string, slotId: string, slotTime: string) => void;
+  onCancel: () => void;
+}) {
+  const [step, setStep] = useState<"date" | "slot">("date");
+  const [newDate, setNewDate] = useState("");
+  const [slots, setSlots] = useState<ReturnType<typeof getSlotsWithAvailability>>([]);
+
+  const handleDateNext = () => {
+    if (!newDate) return;
+    setSlots(getSlotsWithAvailability(newDate, booking.id));
+    setStep("slot");
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+
+  return (
+    <div className="mt-3 border border-border rounded-sm p-4 bg-background space-y-3 animate-fade-in">
+      {step === "date" ? (
+        <>
+          <p className="text-xs font-display tracking-wider text-muted-foreground">ВЫБЕРИТЕ НОВУЮ ДАТУ</p>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              min={today}
+              value={newDate}
+              onChange={e => setNewDate(e.target.value)}
+              className="flex-1 bg-surface border border-border focus:border-fire/60 rounded-sm px-3 py-2 text-sm outline-none"
+            />
+            <button
+              onClick={handleDateNext}
+              disabled={!newDate}
+              className="bg-fire text-white font-display text-xs tracking-wider px-4 py-2 rounded-sm hover:bg-fire/85 disabled:opacity-40 transition-all"
+            >
+              ДАЛЕЕ →
+            </button>
+            <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-sm hover:bg-white/10 transition-colors">
+              <Icon name="X" size={14} className="text-muted-foreground" />
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 mb-1">
+            <button onClick={() => setStep("date")} className="text-xs text-muted-foreground hover:text-fire transition-colors flex items-center gap-1">
+              <Icon name="ChevronLeft" size={12} />
+              {newDate}
+            </button>
+            <span className="text-xs text-muted-foreground">→ выберите слот</span>
+          </div>
+          <div className="space-y-1.5">
+            {slots.map(slot => {
+              const isFull = slot.free === 0;
+              const noFit = slot.free < booking.quadsCount;
+
+              let statusColor = "text-green-400";
+              let statusBg = "bg-green-900/15 border-green-700/30";
+              if (slot.free <= 2 && slot.free > 0) { statusColor = "text-gold"; statusBg = "bg-gold/10 border-gold/30"; }
+              if (isFull || noFit) { statusColor = "text-red-400"; statusBg = "bg-red-900/15 border-red-700/30"; }
+
+              return (
+                <button
+                  key={slot.id}
+                  disabled={isFull || noFit}
+                  onClick={() => onConfirm(newDate, slot.id, slot.time)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-sm border transition-all text-left ${
+                    isFull || noFit
+                      ? "opacity-40 cursor-not-allowed bg-surface border-border"
+                      : "bg-surface border-border hover:border-fire/50 hover:bg-fire/5 cursor-pointer"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-display font-bold text-base w-12">{slot.time}</span>
+                    <span className="text-xs text-muted-foreground">{slot.label}</span>
+                  </div>
+                  <div className={`text-xs font-display tracking-wider px-2 py-1 rounded-sm border ${statusBg} ${statusColor}`}>
+                    {isFull ? "ЗАНЯТО" : noFit ? `только ${slot.free} кв.` : `${slot.free}/${slot.quadsTotal} св.`}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Booking card in admin
 function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => void }) {
   const [showTransfer, setShowTransfer] = useState(false);
-  const [newDate, setNewDate] = useState("");
 
   const cancel = () => {
     if (confirm("Отменить запись?")) { updateBooking(booking.id, { status: "cancelled" }); onUpdate(); }
   };
-  const transferTo = () => {
-    if (!newDate) return;
-    updateBooking(booking.id, { status: "transferred", transferredTo: newDate });
+  const confirmTransfer = (newDate: string, slotId: string, slotTime: string) => {
+    updateBooking(booking.id, {
+      status: "transferred",
+      transferredTo: newDate,
+      date: newDate,
+      slotId,
+      slotTime,
+    });
     onUpdate();
     setShowTransfer(false);
   };
@@ -241,17 +339,11 @@ function BookingCard({ booking, onUpdate }: { booking: Booking; onUpdate: () => 
       )}
 
       {showTransfer && (
-        <div className="mt-3 flex gap-2 items-center">
-          <input
-            type="date"
-            value={newDate}
-            onChange={e => setNewDate(e.target.value)}
-            className="flex-1 bg-background border border-border focus:border-fire/60 rounded-sm px-3 py-2 text-sm outline-none"
-          />
-          <button onClick={transferTo} className="bg-fire text-white font-display text-xs tracking-wider px-4 py-2 rounded-sm hover:bg-fire/85 transition-all">
-            ОК
-          </button>
-        </div>
+        <TransferPanel
+          booking={booking}
+          onConfirm={confirmTransfer}
+          onCancel={() => setShowTransfer(false)}
+        />
       )}
     </div>
   );
@@ -304,6 +396,9 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
           const count = countForDate(dateStr);
           const isSel = selectedDate === dateStr;
           const isToday = dateStr === fmtDate(today.getFullYear(), today.getMonth(), today.getDate());
+          const dayFull = isDayFull(dateStr);
+          const freeTotal = getDayFreeTotal(dateStr);
+          const almostFull = !dayFull && freeTotal <= 4 && count > 0;
 
           return (
             <button
@@ -311,21 +406,33 @@ function AdminCalendar({ bookings, selectedDate, onSelect }: {
               onClick={() => onSelect(dateStr)}
               className={`aspect-square flex flex-col items-center justify-center text-xs rounded-sm transition-all relative ${
                 isSel ? "bg-fire text-white font-bold"
-                : isToday ? "border border-fire/50 text-fire"
-                : count > 0 ? "hover:bg-fire/10 text-foreground" : "hover:bg-white/5 text-muted-foreground/60"
+                : dayFull ? "bg-red-900/30 text-red-400 border border-red-800/30"
+                : almostFull ? "bg-gold/10 text-gold border border-gold/25 hover:bg-gold/20"
+                : isToday ? "border border-fire/50 text-fire hover:bg-fire/10"
+                : count > 0 ? "hover:bg-fire/10 text-foreground"
+                : "hover:bg-white/5 text-muted-foreground/60"
               }`}
             >
               {day}
-              {count > 0 && !isSel && (
+              {dayFull && !isSel && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[7px] text-red-400 leading-none">✕</span>
+              )}
+              {!dayFull && count > 0 && !isSel && (
                 <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                   {Array.from({ length: Math.min(count, 3) }, (_, j) => (
-                    <div key={j} className="w-1 h-1 rounded-full bg-fire" />
+                    <div key={j} className={`w-1 h-1 rounded-full ${almostFull ? "bg-gold" : "bg-fire"}`} />
                   ))}
                 </div>
               )}
             </button>
           );
         })}
+      </div>
+
+      <div className="flex gap-3 mt-3 text-xs">
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-fire" /><span className="text-muted-foreground">Выбран</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-gold/10 border border-gold/25" /><span className="text-muted-foreground">Мало мест</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-900/30 border border-red-800/30" /><span className="text-muted-foreground">Занят</span></div>
       </div>
     </div>
   );

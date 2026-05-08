@@ -47,6 +47,36 @@ export function getSlotBookedCount(date: string, slotId: string): number {
     .reduce((sum, b) => sum + b.quadsCount, 0);
 }
 
+export function getSlotFreeCount(date: string, slotId: string): number {
+  const slot = TIME_SLOTS.find(s => s.id === slotId);
+  if (!slot) return 0;
+  return slot.quadsTotal - getSlotBookedCount(date, slotId);
+}
+
+export function isDayFull(date: string): boolean {
+  return TIME_SLOTS.every(slot => getSlotFreeCount(date, slot.id) === 0);
+}
+
+export function getDayFreeTotal(date: string): number {
+  return TIME_SLOTS.reduce((sum, slot) => sum + getSlotFreeCount(date, slot.id), 0);
+}
+
+export function getSlotsWithAvailability(date: string, excludeBookingId?: string) {
+  const bookings = getBookings();
+  return TIME_SLOTS.map(slot => {
+    const booked = bookings
+      .filter(b =>
+        b.date === date &&
+        b.slotId === slot.id &&
+        b.status === "active" &&
+        b.id !== excludeBookingId
+      )
+      .reduce((sum, b) => sum + b.quadsCount, 0);
+    const free = slot.quadsTotal - booked;
+    return { ...slot, booked, free };
+  });
+}
+
 function getSampleBookings(): Booking[] {
   const today = new Date();
   const fmt = (d: Date) => d.toISOString().split("T")[0];

@@ -1,11 +1,10 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
-import { TIME_SLOTS, getSlotBookedCount, addBooking } from "@/lib/bookingStore";
+import { TIME_SLOTS, getSlotBookedCount, addBooking, isDayFull, getDayFreeTotal } from "@/lib/bookingStore";
 import { BookingFormData } from "@/types/booking";
 
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const DAYS_OF_WEEK = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-const PREPAYMENT_OPTIONS = ["1000", "2000", "3000", "5000", "custom", "none"];
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -67,19 +66,48 @@ function StepCalendar({ onSelect }: { onSelect: (date: string) => void }) {
           const dateStr = fmtDate(view.year, view.month, day);
           const isPast = new Date(view.year, view.month, day) < new Date(td.year, td.month, td.day);
           const isSel = selected === dateStr;
+          const dayFull = !isPast && isDayFull(dateStr);
+          const freeTotal = !isPast && !dayFull ? getDayFreeTotal(dateStr) : 0;
+          const dayBusy = !isPast && !dayFull && freeTotal <= 4; // мало мест по всему дню
 
-          let cls = "aspect-square flex items-center justify-center text-sm rounded-sm transition-all font-body text-sm ";
-          if (isPast) cls += "text-muted-foreground/25 cursor-not-allowed";
-          else if (isSel) cls += "bg-fire text-white font-bold scale-110 shadow-lg shadow-fire/30";
-          else cls += "hover:bg-fire/20 hover:text-fire cursor-pointer border border-transparent hover:border-fire/30";
+          let cls = "relative aspect-square flex items-center justify-center text-sm rounded-sm transition-all font-body ";
+          if (isPast) {
+            cls += "text-muted-foreground/25 cursor-not-allowed";
+          } else if (isSel) {
+            cls += "bg-fire text-white font-bold scale-110 shadow-lg shadow-fire/30";
+          } else if (dayFull) {
+            cls += "bg-red-900/25 text-red-400 border border-red-800/40 cursor-not-allowed line-through";
+          } else if (dayBusy) {
+            cls += "bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 cursor-pointer";
+          } else {
+            cls += "hover:bg-fire/20 hover:text-fire cursor-pointer border border-transparent hover:border-fire/30";
+          }
 
           return (
-            <button key={dateStr} className={cls} disabled={isPast}
+            <button key={dateStr} className={cls} disabled={isPast || dayFull}
               onClick={() => { setSelected(dateStr); onSelect(dateStr); }}>
               {day}
+              {dayFull && !isPast && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] text-red-400 leading-none">✕</span>
+              )}
             </button>
           );
         })}
+      </div>
+
+      <div className="flex gap-4 mt-5 text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm border border-transparent bg-background" />
+          <span className="text-muted-foreground">Свободно</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-gold/10 border border-gold/30" />
+          <span className="text-muted-foreground">Мало мест</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-red-900/25 border border-red-800/40" />
+          <span className="text-muted-foreground">День занят</span>
+        </div>
       </div>
     </div>
   );
