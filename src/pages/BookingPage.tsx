@@ -305,7 +305,7 @@ function StepForm({ onSubmit }: { onSubmit: (data: BookingFormData) => void }) {
       <div className="border-t border-border/50 pt-6">
         <h3 className="font-display text-sm tracking-widest text-gold mb-4 flex items-center gap-2">
           <Icon name="Briefcase" size={14} />
-          АГЕНТ / ПОСРЕДНИК
+          АГЕНТ / КАССИР
         </h3>
         <div className="space-y-3">
           <div>
